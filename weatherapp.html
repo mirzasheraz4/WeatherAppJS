@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pixel Weather App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Press Start 2P', cursive;
+      background: #0d0d0d;
+      color: #fff;
+      text-align: center;
+      image-rendering: pixelated;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 10px;
+    }
+
+    /* Pixel Panel Style */
+    .panel {
+      background: #1a1a1a;
+      border: 4px solid #00ffea;
+      box-shadow: 6px 6px 0 #ff00d4;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    /* Search Bar */
+    .search {
+      display: flex;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .search input {
+      font-family: inherit;
+      font-size: 12px;
+      padding: 10px;
+      width: 60%;
+      border: 3px solid #00ffea;
+      background: #000;
+      color: #0f0;
+    }
+    .search button {
+      font-family: inherit;
+      background: #ffcc00;
+      border: 3px solid #000;
+      padding: 10px 20px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .search button:hover {
+      background: #ff6600;
+      color: #000;
+    }
+
+    /* Current Weather */
+    .weather h1 {
+      font-size: 28px;
+      margin: 10px 0;
+    }
+    .weather h2 {
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    .desc {
+      font-size: 12px;
+      margin-top: 5px;
+      color: #0ff;
+    }
+    .weather img {
+      width: 80px;
+      image-rendering: pixelated;
+    }
+
+    /* Info Stats */
+    .info {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+    }
+    .card {
+      background: #000;
+      border: 3px solid #ff00d4;
+      padding: 10px;
+      flex: 1;
+      margin: 0 5px;
+      font-size: 10px;
+    }
+    .card p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #ffcc00;
+    }
+
+    /* Forecast */
+    .forecast {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+    }
+    .day {
+      flex: 1;
+      margin: 0 5px;
+      background: #111;
+      border: 3px solid #0ff;
+      padding: 10px;
+      font-size: 10px;
+    }
+    .day img {
+      width: 50px;
+      margin: 10px 0;
+      image-rendering: pixelated;
+    }
+    .day .temp {
+      color: #0f0;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Search -->
+    <div class="search">
+      <input id="cityInput" type="text" placeholder="ENTER CITY...">
+      <button onclick="searchCity()">GO</button>
+    </div>
+
+    <!-- Current Weather -->
+    <div class="panel weather">
+      <img id="icon" src="" alt="icon">
+      <h1 id="temp">--°C</h1>
+      <h2 id="city">CITY</h2>
+      <div class="desc" id="desc">--- </div>
+
+      <div class="info">
+        <div class="card">
+          <h3>FEELS</h3>
+          <p id="feelslike">--°C</p>
+        </div>
+        <div class="card">
+          <h3>HUMID</h3>
+          <p id="humidity">--%</p>
+        </div>
+        <div class="card">
+          <h3>WIND</h3>
+          <p id="wind">--km/h</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forecast -->
+    <div class="panel forecast" id="forecast"></div>
+  </div>
+
+  <script>
+    const API_KEY = "zpka_c0434e6afcf04f44ad64df04fd2bd12b_b7bf2c09";
+
+    function getAccuIcon(num){
+      // Use your local icons or any pixel icon set
+      return `icons/${num.toString().padStart(2,'0')}-s.png`;
+    }
+
+    async function getLocationKey(city){
+      const url = `https://dataservice.accuweather.com/locations/v1/cities/search?apikey=${API_KEY}&q=${encodeURIComponent(city)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.length) throw new Error("City not found");
+      return data[0];
+    }
+
+    async function getCurrentConditions(locationKey){
+      const url = `https://dataservice.accuweather.com/currentconditions/v1/${locationKey}?apikey=${API_KEY}&details=true`;
+      const res = await fetch(url);
+      return res.json();
+    }
+
+    async function getForecast(locationKey){
+      const url = `https://dataservice.accuweather.com/forecasts/v1/daily/5day/${locationKey}?apikey=${API_KEY}&metric=true`;
+      const res = await fetch(url);
+      return res.json();
+    }
+
+    async function searchCity(){
+      const cityName = document.getElementById("cityInput").value;
+      if (!cityName) return alert("Enter a city!");
+
+      try {
+        const location = await getLocationKey(cityName);
+        document.getElementById("city").innerText = `${location.LocalizedName}, ${location.Country.ID}`;
+
+        const current = await getCurrentConditions(location.Key);
+        const now = current[0];
+        document.getElementById("temp").innerText = `${Math.round(now.Temperature.Metric.Value)}°C`;
+        document.getElementById("feelslike").innerText = `${Math.round(now.RealFeelTemperature.Metric.Value)}°C`;
+        document.getElementById("humidity").innerText = `${now.RelativeHumidity}%`;
+        document.getElementById("wind").innerText = `${Math.round(now.Wind.Speed.Metric.Value)} km/h`;
+        document.getElementById("desc").innerText = now.WeatherText;
+        document.getElementById("icon").src = getAccuIcon(now.WeatherIcon);
+
+        const forecast = await getForecast(location.Key);
+        const days = forecast.DailyForecasts.slice(1,4);
+        document.getElementById("forecast").innerHTML = days.map(d=>{
+          const date = new Date(d.Date);
+          const dayName = date.toLocaleDateString(undefined,{weekday:"short"});
+          return `<div class="day">
+            <p>${dayName}</p>
+            <img src="${getAccuIcon(d.Day.Icon)}" />
+            <p class="temp">${Math.round(d.Temperature.Maximum.Value)}°C / ${Math.round(d.Temperature.Minimum.Value)}°C</p>
+          </div>`;
+        }).join("");
+      } catch(err){
+        alert(err.message);
+      }
+    }
+  </script>
+</body>
+</html>
